@@ -43,7 +43,7 @@ class CycleGANNoisyModel(BaseModel):
             parser.add_argument('--lambda_identity', type=float, default=0.5, help='use identity mapping. Setting lambda_identity other than 0 has an effect of scaling the weight of the identity mapping loss. For example, if the weight of the identity loss should be 10 times smaller than the weight of the reconstruction loss, please set lambda_identity = 0.1')
         else:
             parser.add_argument('--calculate_sn', action='store_true', help='Generate images with the noise given in the evaluation of SN metric')
-        parser.add_argument('--noise_std', type=float, default=0.1, help='stdev of the Gaussian noise')
+        parser.add_argument('--noise_std', type=float, default=0.1, help='stdev of the Gaussian noise; SN sigma when used during testing')
         return parser
 
     def __init__(self, opt):
@@ -121,11 +121,10 @@ class CycleGANNoisyModel(BaseModel):
             self.fake_A_noisy = self.gaussian(self.fake_A)
             self.rec_B = self.netG_A(self.fake_A_noisy)  # G_A(G_B(B))
         else:
-            # self.sn_fake_B = self.fake_B
             self.rec_A = self.netG_B(self.fake_B)
-            # self.sn_fake_A = self.fake_A
             self.rec_B = self.netG_A(self.fake_A)
 
+        # SN
         if not self.isTrain and self.opt.calculate_sn:
             self.fake_B_noisy = self.gaussian(self.fake_B)
             self.sn_noisy_rec_A = self.netG_B(self.fake_B_noisy)

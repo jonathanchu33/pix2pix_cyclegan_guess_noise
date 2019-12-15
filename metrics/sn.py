@@ -3,13 +3,14 @@ import numpy as np
 from PIL import Image
 
 ## Run this script from the metrics directory.
-IMG_DIR_PATH = '../../test_latest1/images'
+IMG_DIR_PATH = '../results/test/test_latest/images'
 MODEL ='cycle_gan_noisy'
 
 normalize = True
 
 def calculate_sn(sigma):
-  subprocess.run(['python', 'test.py', '--model', MODEL, '--dataroot', 'datasets/maps', '--name', 'test', '--num_test', '75', '--gpu_ids', '-1', '--calculate_sn', '--noise_std', str(sigma)], cwd='..')
+  print('Generate images with sigma', sigma)
+  subprocess.run(['python', 'test.py', '--model', MODEL, '--dataroot', 'datasets/maps', '--name', 'test', '--num_test', '75', '--calculate_sn', '--noise_std', str(sigma)], cwd='..')
   # 'python ../test.py --model cycle_gan_noisy --dataroot datasets/maps --name test --num_test 75 --gpu_ids -1 --calculate_sn'
   walk_dir_obj = os.walk(IMG_DIR_PATH)
   root, dirs, files = next(walk_dir_obj)
@@ -23,7 +24,7 @@ def calculate_sn(sigma):
   # Image sets come in batches of 8 files
   for i in range(1, len(image_files), 8):
     fakeA, realA, recA, snrecA = image_files[i], image_files[i + 2], image_files[i + 4], image_files[i + 6]
-    fakeA, realA, recA, snrecA = Image.open(fakeA), Image.open(realA), Image.open(recA), Image.open(snrecA)
+    fakeA, realA, recA, snrecA = Image.open(os.path.join(IMG_DIR_PATH, fakeA)), Image.open(os.path.join(IMG_DIR_PATH, realA)), Image.open(os.path.join(IMG_DIR_PATH, recA)), Image.open(os.path.join(IMG_DIR_PATH, snrecA))
     # Grayscale
     gfakeA, grealA, grecA, gsnrecA = fakeA.convert("L"), realA.convert("L"), recA.convert("L"), snrecA.convert("L")
     gfakeA, grealA, grecA, gsnrecA = np.array(gfakeA), np.array(grealA), np.array(grecA), np.array(gsnrecA)
@@ -50,12 +51,15 @@ def calculate_sn(sigma):
 
 
 N_SAMPLES = 10
+sigmas = []
 sn_overall = []
 gsn_overall = []
 for i in range(N_SAMPLES):
   sigma = np.random.uniform(0.0, 2.0)
   mean, gmean = calculate_sn(sigma)
+  sigmas.append(sigma)
   sn_overall.append(mean)
   gsn_overall.append(gmean)
 print('Model SN: ', np.array(sn_overall).mean())
 print('Model GSN: ', np.array(gsn_overall).mean())
+print('Sigmas sampled: ', sigmas)
