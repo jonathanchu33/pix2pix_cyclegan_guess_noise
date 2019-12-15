@@ -41,6 +41,8 @@ class CycleGANNoisyModel(BaseModel):
             parser.add_argument('--lambda_A', type=float, default=10.0, help='weight for cycle loss (A -> B -> A)')
             parser.add_argument('--lambda_B', type=float, default=10.0, help='weight for cycle loss (B -> A -> B)')
             parser.add_argument('--lambda_identity', type=float, default=0.5, help='use identity mapping. Setting lambda_identity other than 0 has an effect of scaling the weight of the identity mapping loss. For example, if the weight of the identity loss should be 10 times smaller than the weight of the reconstruction loss, please set lambda_identity = 0.1')
+        else:
+            parser.add_argument('--calculate_sn', action='store_true', help='Generate images with the noise given in the evaluation of SN metric')
         parser.add_argument('--noise_std', type=float, default=0.1, help='stdev of the Gaussian noise')
         return parser
 
@@ -54,8 +56,8 @@ class CycleGANNoisyModel(BaseModel):
         # specify the training losses you want to print out. The training/test scripts will call <BaseModel.get_current_losses>
         self.loss_names = ['D_A', 'G_A', 'cycle_A', 'idt_A', 'D_B', 'G_B', 'cycle_B', 'idt_B']
         # specify the images you want to save/display. The training/test scripts will call <BaseModel.get_current_visuals>
-        visual_names_A = ['real_A', 'fake_B', 'rec_A']
-        visual_names_B = ['real_B', 'fake_A', 'rec_B']
+        visual_names_A = ['real_A', 'fake_B', 'rec_A', 'sn_noisy_rec_A']
+        visual_names_B = ['real_B', 'fake_A', 'rec_B', 'sn_noisy_rec_B']
         if self.isTrain and self.opt.lambda_identity > 0.0:  # if identity loss is used, we also visualize G_B(A) ad G_A(B)
             visual_names_A.append('idt_A')
             visual_names_B.append('idt_B')
@@ -119,10 +121,16 @@ class CycleGANNoisyModel(BaseModel):
             self.fake_A_noisy = self.gaussian(self.fake_A)
             self.rec_B = self.netG_A(self.fake_A_noisy)  # G_A(G_B(B))
         else:
+            # self.sn_fake_B = self.fake_B
             self.rec_A = self.netG_B(self.fake_B)
+            # self.sn_fake_A = self.fake_A
             self.rec_B = self.netG_A(self.fake_A)
 
-
+        if not self.isTrain and self.opt.calculate_sn:
+            self.fake_B_noisy = self.gaussian(self.fake_B)
+            self.sn_noisy_rec_A = self.netG_B(self.fake_B_noisy)
+            self.fake_A_noisy = self.gaussian(self.fake_A)
+            self.sn_noisy_rec_B = self.netG_A(self.fake_A_noisy)
 
     def backward_D_basic(self, netD, real, fake):
         """Calculate GAN loss for the discriminator
@@ -203,6 +211,6 @@ class CycleGANNoisyModel(BaseModel):
 
 
     def gaussian(self, in_tensor):
-        noisy_image = torch.zeros(list(in_tensor.size())).data.normal_(0, self.stddev).cuda() + in_tensor
+        noisy_image = torch.zeros(list(in_tensor.size())).data.normal_(0, self.stddev).to(self.device) + in_tensor
         # noisy_tensor = 2 * (noisy_image - noisy_image.min()) / (noisy_image.max() - noisy_image.min()) - 1
         return noisy_image
