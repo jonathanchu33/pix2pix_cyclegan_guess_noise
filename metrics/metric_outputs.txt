@@ -1,3 +1,33 @@
+NOTE: Was too dumb to copy the metrics for lguess and AlB_r2 in text, but there are screenshots of them in this repo.
+
+normal_r2
+Images were normalized.
+
+RH Score:  25.61142348848359 +- 8.707080054178746
+RH (Grayscale) Score:  14.714616998542164 +- 4.9056895998787065
+Proposed RH Score:  53.74083686480597 +- 11.857737936809045
+Proposed RH (Grayscale) Score:  31.2186724215921 +- 6.788243587153444
+Segmentation Accuracy:  0.5298710251549337 +- 0.12477469801575519
+Segmentation (Grayscale) Accuracy:  0.29937311947237166 +- 0.0953400399792243
+IoU Accuracy:  0.06526267060681024 +- 0.030608590213585703
+IoU (Grayscale) Accuracy:  0.006845961743673327 +- 0.0035970395811463964
+SN evaluated at default sigma: 64.87586030410024 +- 14.783031646998113
+SN (Grayscale) evaluated at default sigma: 37.26206324266633 +- 8.313183371360608
+
+noisy_r2
+Images were normalized.
+
+RH Score:  2.522666796655522 +- 4.384761904182213
+RH (Grayscale) Score:  1.4983133885351478 +- 2.522055442210406
+Proposed RH Score:  38.463500944440256 +- 13.100602077977003
+Proposed RH (Grayscale) Score:  22.222183412783487 +- 7.445728295297271
+Segmentation Accuracy:  0.5552462107062557 +- 0.1408706881446995
+Segmentation (Grayscale) Accuracy:  0.3788177962728754 +- 0.12422328091696362
+IoU Accuracy:  0.06840673539044671 +- 0.03265016041473483
+IoU (Grayscale) Accuracy:  0.008695999779504056 +- 0.004892707485099792
+SN evaluated at default sigma: 40.642759465767384 +- 11.432925133314832
+SN (Grayscale) evaluated at default sigma: 23.233061830232668 +- 6.5446794286803485
+
 cycle_gan_guess_r2
 Images were normalized.
 
