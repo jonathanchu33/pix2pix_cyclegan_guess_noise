@@ -45,6 +45,7 @@ class CycleGANGuessModel(BaseModel):
             parser.add_argument('--lambda_identity', type=float, default=0.5, help='use identity mapping. Setting lambda_identity other than 0 has an effect of scaling the weight of the identity mapping loss. For example, if the weight of the identity loss should be 10 times smaller than the weight of the reconstruction loss, please set lambda_identity = 0.1')
         else:
             parser.add_argument('--calculate_sn', action='store_true', help='Generate images with the noise given in the evaluation of SN metric')
+            parser.add_argument('--quantize_rh', type=float, default=False, help='Generate images quantized by quantize_rh coarse buckets in the evaluation of RH metric')
         parser.add_argument('--noise_std', type=float, default=0.1, help='standard deviation of noise; SN sigma when used during testing')
         return parser
 
@@ -70,6 +71,7 @@ class CycleGANGuessModel(BaseModel):
             visual_names_A.extend(['qe_real_A', 'qe_fake_A', 'rhqe_rec_A'])#, 'qp_real_A', 'qp_fake_A', 'rhqp_rec_A'])
             visual_names_B.extend(['qe_real_B', 'qe_fake_B', 'rhqe_rec_B'])#, 'qp_real_B', 'qp_fake_B', 'rhqp_rec_B'])
 
+        self.stddev = opt.noise_std
         self.visual_names = visual_names_A + visual_names_B  # combine visualizations for A and B
         # specify the models you want to save to the disk. The training/test scripts will call <BaseModel.save_networks> and <BaseModel.load_networks>.
         if self.isTrain:

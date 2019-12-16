@@ -44,6 +44,7 @@ class CycleGANGuessNoisyModel(BaseModel):
             parser.add_argument('--lambda_identity', type=float, default=0.5, help='use identity mapping. Setting lambda_identity other than 0 has an effect of scaling the weight of the identity mapping loss. For example, if the weight of the identity loss should be 10 times smaller than the weight of the reconstruction loss, please set lambda_identity = 0.1')
         else:
             parser.add_argument('--calculate_sn', action='store_true', help='Generate images with the noise given in the evaluation of SN metric')
+            parser.add_argument('--quantize_rh', type=float, default=False, help='Generate images quantized by quantize_rh coarse buckets in the evaluation of RH metric')
         parser.add_argument('--noise_std', type=float, default=0.1, help='standard deviation of noise; SN sigma when used during testing')
         return parser
 
