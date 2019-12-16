@@ -1,0 +1,43 @@
+The 8 most popular colors in real google maps photos was manually determined, and their color formulas below. The first section is RGB according to array values when images are converted to numpy/torch arrays/tensors. The second section is the first section but converted to the range [-255, 255]; for some reason, the photos are represented in the range[-1, 1] in the models. The third section is RGB according to the macOS Digital Color Meter Utility.
+
+Regular RGB read using PIL:
+value = 127.5 + (below) / 2
+Beige: 244, 244, 236
+DBeige: 233, 228, 222
+DDBeige: 222, 218, 213
+Blue: 177, 208, 254
+Green: 203, 223, 172
+Orange: 250, 157, 43
+Red: 236, 209, 205
+White: 255, 255, 255
+
+Above converted to torch scale [-255, 255]:
+value = ((above) - 127.5) * 2
+Beige: 233, 233, 217
+DBeige: 211, 201, 189
+DDBeige: 189, 181, 171
+Blue: 99, 161, 253
+Green: 151, 191, 89
+Orange: 245, 59, -169
+Red: 217, 163, 155
+White: 255, 255, 255
+
+RGB read using Mac utility (for comparison):
+Beige: 243, 243, 236
+DBeige: 232, 228, 223
+DDBeige: 222, 218, 213
+Blue: 183, 208, 250
+Green: 207, 222, 177
+Orange: 237, 160, 70
+Red: 231, 209, 206
+White: 255, 255, 255
+
+Grayscale of Section 1:
+Beige: 243
+DBeige: 228
+DDBeige: 218
+Blue: 203
+Green: 211
+Orange: 171
+Red: 216
+White: 255

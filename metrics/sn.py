@@ -22,7 +22,7 @@ def calculate_sn(sigma):
   sn_grayscale_scores = []
 
   # Image sets come in batches of 8 files
-  for i in range(1, len(image_files), 8):
+  for i in range(0, len(image_files), 8):
     fakeA, realA, recA, snrecA = image_files[i], image_files[i + 2], image_files[i + 4], image_files[i + 6]
     fakeA, realA, recA, snrecA = Image.open(os.path.join(IMG_DIR_PATH, fakeA)), Image.open(os.path.join(IMG_DIR_PATH, realA)), Image.open(os.path.join(IMG_DIR_PATH, recA)), Image.open(os.path.join(IMG_DIR_PATH, snrecA))
     # Grayscale
