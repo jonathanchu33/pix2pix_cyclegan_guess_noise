@@ -10,10 +10,13 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Calculate RH, Proposed RH, Seg/IoU Acc. Metrics.')
   parser.add_argument('--img_dir', type=str, required=True, help='Directory path containing images to analyze')
   parser.add_argument('--normalize', action='store_true', help='Normalize images before calculating metrics.')
+  parser.add_argument('--print_every', type=int, default=25, help='Print progress every _ images processed')
+
   args = vars(parser.parse_args())
 
   IMG_DIR_PATH = args['img_dir']
   normalize = args['normalize']
+  print_every = args['print_every']
 
   ## Metrics
   rh_scores = []                    # RH
@@ -36,6 +39,8 @@ if __name__ == '__main__':
 
   # Calculate metrics for each image. Image sets come in batches of IMG_BATCH_SIZE files
   for i in range(0, len(image_files), IMG_BATCH_SIZE):
+    if i / IMG_BATCH_SIZE % print_every == 0:
+      print(i / IMG_BATCH_SIZE)
     ### (A) Prepare Images
     # Collect image names by A/B category
     imagesA, imagesB = [], []
@@ -92,7 +97,7 @@ if __name__ == '__main__':
     # Grayscale
     grec_loss = np.linalg.norm(grecA - grealA)    # Normal reconstruction loss of real image (from richer domain)
     gqrec_loss = np.linalg.norm(gqerecA - grealA) # Reconstruction loss using quantized intermediary
-    rh_grayscale_scores.append(grec_loss - gqrec_loss)
+    rh_grayscale_scores.append(gqrec_loss - grec_loss)
 
     ## (B2) Proposed RH
     # RGB
@@ -101,7 +106,7 @@ if __name__ == '__main__':
 
     # Grayscale
     gtrans_loss = np.linalg.norm(gfakeA - grealA) # Translation loss from one-to-many (input map from poorer domain)
-    proposed_rh_grayscale_scores.append(grec_loss - gtrans_loss)
+    proposed_rh_grayscale_scores.append(gtrans_loss - grec_loss)
 
     ## (B3) Segmentation Accuracy
     # RGB
@@ -157,25 +162,25 @@ if __name__ == '__main__':
 
   rh_scores = np.array(rh_scores)
   rh_grayscale_scores = np.array(rh_grayscale_scores)
-  print('RH Score: ', rh_scores.mean())
-  print('RH (Grayscale) Score: ', rh_grayscale_scores.mean())
+  print('RH Score: ', rh_scores.mean(), "+-", rh_scores.std())
+  print('RH (Grayscale) Score: ', rh_grayscale_scores.mean(), "+-", rh_grayscale_scores.std())
 
   proposed_rh_scores = np.array(proposed_rh_scores)
   proposed_rh_grayscale_scores = np.array(proposed_rh_grayscale_scores)
-  print('Proposed RH Score: ', proposed_rh_scores.mean())
-  print('Proposed RH (Grayscale) Score: ', proposed_rh_grayscale_scores.mean())
+  print('Proposed RH Score: ', proposed_rh_scores.mean(), "+-", proposed_rh_scores.std())
+  print('Proposed RH (Grayscale) Score: ', proposed_rh_grayscale_scores.mean(), "+-", proposed_rh_grayscale_scores.std())
 
   seg_scores = np.array(seg_scores)
   seg_grayscale_scores = np.array(seg_grayscale_scores)
-  print('Segmentation Accuracy: ', seg_scores.mean())
-  print('Segmentation (Grayscale) Accuracy: ', seg_grayscale_scores.mean())
+  print('Segmentation Accuracy: ', seg_scores.mean(), "+-", seg_scores.std())
+  print('Segmentation (Grayscale) Accuracy: ', seg_grayscale_scores.mean(), "+-", seg_grayscale_scores.std())
 
   iou_scores = np.array(iou_scores)
   iou_grayscale_scores = np.array(iou_grayscale_scores)
-  print('IoU Accuracy: ', iou_scores.mean())
-  print('IoU (Grayscale) Accuracy: ', iou_grayscale_scores.mean())
+  print('IoU Accuracy: ', iou_scores.mean(), "+-", iou_scores.std())
+  print('IoU (Grayscale) Accuracy: ', iou_grayscale_scores.mean(), "+-", iou_grayscale_scores.std())
 
   sn_scores = np.array(sn_scores)
   sn_grayscale_scores = np.array(sn_grayscale_scores)
-  print('SN evaluated at default sigma:', sn_scores.mean())
-  print('SN (Grayscale) evaluated at default sigma:', sn_grayscale_scores.mean())
+  print('SN evaluated at default sigma:', sn_scores.mean(), "+-", sn_scores.std())
+  print('SN (Grayscale) evaluated at default sigma:', sn_grayscale_scores.mean(), "+-", sn_grayscale_scores.std())
