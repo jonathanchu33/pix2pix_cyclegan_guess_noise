@@ -3,6 +3,7 @@ import itertools
 from util.image_pool import ImagePool
 from .base_model import BaseModel
 from . import networks
+import time, numpy as np
 
 
 class CycleGANModel(BaseModel):
@@ -43,6 +44,7 @@ class CycleGANModel(BaseModel):
             parser.add_argument('--lambda_identity', type=float, default=0.5, help='use identity mapping. Setting lambda_identity other than 0 has an effect of scaling the weight of the identity mapping loss. For example, if the weight of the identity loss should be 10 times smaller than the weight of the reconstruction loss, please set lambda_identity = 0.1')
         else:
             parser.add_argument('--calculate_sn', action='store_true', help='Generate images with the noise given in the evaluation of SN metric')
+            parser.add_argument('--quantize_rh', type=float, default=False, help='Generate images quantized by quantize_rh coarse buckets in the evaluation of RH metric')
         parser.add_argument('--noise_std', type=float, default=0.1, help='standard deviation of noise; SN sigma when used during testing')
         return parser
 
@@ -56,11 +58,17 @@ class CycleGANModel(BaseModel):
         # specify the training losses you want to print out. The training/test scripts will call <BaseModel.get_current_losses>
         self.loss_names = ['D_A', 'G_A', 'cycle_A', 'idt_A', 'D_B', 'G_B', 'cycle_B', 'idt_B']
         # specify the images you want to save/display. The training/test scripts will call <BaseModel.get_current_visuals>
-        visual_names_A = ['real_A', 'fake_B', 'rec_A', 'sn_noisy_rec_A']
-        visual_names_B = ['real_B', 'fake_A', 'rec_B', 'sn_noisy_rec_B']
+        visual_names_A = ['real_A', 'fake_B', 'rec_A']
+        visual_names_B = ['real_B', 'fake_A', 'rec_B']
         if self.isTrain and self.opt.lambda_identity > 0.0:  # if identity loss is used, we also visualize G_B(A) ad G_A(B)
             visual_names_A.append('idt_A')
             visual_names_B.append('idt_B')
+        if self.opt.calculate_sn:
+            visual_names_A.append('sn_noisy_rec_A')
+            visual_names_B.append('sn_noisy_rec_B')
+        if self.opt.quantize_rh:
+            visual_names_A.extend(['qe_real_A', 'qe_fake_A', 'rhqe_rec_A'])#, 'qp_real_A', 'qp_fake_A', 'rhqp_rec_A'])
+            visual_names_B.extend(['qe_real_B', 'qe_fake_B', 'rhqe_rec_B'])#, 'qp_real_B', 'qp_fake_B', 'rhqp_rec_B'])
 
         self.visual_names = visual_names_A + visual_names_B  # combine visualizations for A and B
         # specify the models you want to save to the disk. The training/test scripts will call <BaseModel.save_networks> and <BaseModel.load_networks>.
@@ -68,7 +76,7 @@ class CycleGANModel(BaseModel):
             self.model_names = ['G_A', 'G_B', 'D_A', 'D_B']
         else:  # during test time, only load Gs
             self.model_names = ['G_A', 'G_B']
-
+        self.stddev = opt.noise_std
         # define networks (both Generators and discriminators)
         # The naming is different from those used in the paper.
         # Code (vs. paper): G_A (G), G_B (F), D_A (D_Y), D_B (D_X)
@@ -124,6 +132,24 @@ class CycleGANModel(BaseModel):
             self.sn_noisy_rec_A = self.netG_B(self.fake_B_noisy)
             self.fake_A_noisy = self.gaussian(self.fake_A)
             self.sn_noisy_rec_B = self.netG_A(self.fake_A_noisy)
+
+        # RH: qe = quantized, even; qp = quantized, palette
+        if not self.isTrain and self.opt.quantize_rh:
+            # Even quantization, into self.opt.quantize_rh * 2 subdivisions
+            self.qe_fake_B = torch.round(self.fake_B * self.opt.quantize_rh) / self.opt.quantize_rh
+            self.qe_real_B = torch.round(self.real_B * self.opt.quantize_rh) / self.opt.quantize_rh
+            self.qe_fake_A = torch.round(self.fake_A * self.opt.quantize_rh) / self.opt.quantize_rh
+            self.qe_real_A = torch.round(self.real_A * self.opt.quantize_rh) / self.opt.quantize_rh
+            self.rhqe_rec_A = self.netG_B(self.qe_fake_B)
+            self.rhqe_rec_B = self.netG_A(self.qe_fake_A)
+
+            # Palette qunatization
+            # self.qp_fake_B = self.quantize_palette(self.fake_B)
+            # self.qp_real_B = self.quantize_palette(self.real_B)
+            # self.qp_fake_A = self.quantize_palette(self.fake_A)
+            # self.qp_real_A = self.quantize_palette(self.real_A)
+            # self.rhqp_rec_A = self.netG_B(self.qp_fake_B)
+            # self.rhqp_rec_B = self.netG_A(self.qp_fake_A)
 
     def backward_D_basic(self, netD, real, fake):
         """Calculate GAN loss for the discriminator
@@ -205,3 +231,31 @@ class CycleGANModel(BaseModel):
     def gaussian(self, in_tensor):
         noisy_image = torch.zeros(list(in_tensor.size())).data.normal_(0, self.stddev).to(self.device) + in_tensor
         return noisy_image
+
+    def quantize_palette(self, in_tensor):
+        """Quantize in_tensor by rounding to nearest color (according to L2 norm)
+        found in the color palette. See metrics/color_palette.txt for details"""
+        temp = torch.zeros(1, 3, 256, 256)
+        palette = (torch.tensor([[233, 233, 217],
+                                 [211, 201, 189],
+                                 [189, 181, 171],
+                                 [99, 161, 253],
+                                 [151, 191, 89],
+                                 [245, 59, -169],
+                                 [217, 163, 155],
+                                 [255, 255, 255]
+                                 ]) / 255.0).to(self.device)
+        def find_min(target):
+            best = in_tensor[0, :, 0, 0]
+            for i in range(palette.size()[0]):
+                if torch.norm(palette[i] - target) < torch.norm(best - target):
+                    # print("test")
+                    best = palette[i]
+            return best
+        print('Before q')
+        t = time.time()
+        for i in range(256):
+            for j in range(256):
+                temp[0, :, i, j] = find_min(in_tensor[0, :, i, j])
+        print('after q: ', time.time() - t)
+        return temp
